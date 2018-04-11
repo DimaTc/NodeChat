@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="screen" href="css/chat.css" />
+    <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <!-- temp -->
+    <script>
+        $(document).ready(()=>{
+            setInterval(updateChat, 1000);
+            $("#text_input").keyup((event)=>{
+            if(event.keyCode == 13)
+                sendMessage();
+            });
+            $(".logout").click(()=>{
+                $.ajax({
+                    method:"POST",
+                    url:"/chat",
+                    data:{type:"logout"},
+                    success:function(){
+                        window.location = "/";
+                    }
+                });
+
+            });
+
+        });
+
+        function updateChat(){
+            $.ajax({
+                    method:"POST",
+                    url:"/chat",
+                    data:{type:"update"},
+                    success:function(data){
+                        let users = data.users;
+                        let messages = data.messages
+                        // console.log(messages);
+                        updateUsers(users);
+                        updateMessage(messages);
+                    }
+                });
+        }
+
+        function updateUsers(users){
+            let usersDiv = $("#users");
+            usersDiv.empty();
+            users.forEach(user => {
+                let userDiv = "<div class='user'>" + user +  "</div>";
+                usersDiv.append(userDiv);
+            });
+        }
+
+        function updateMessage(db_messages){
+            messages = [];
+            $("#messages").empty();
+            db_messages.forEach(message=>{
+                content = message.message;
+                sender = message.sender;
+                date = new Date(message.date);
+                var hours = ((date.getHours() % 12 || 12) < 10 ? '0' : '') + (date.getHours() % 12 || 12); 
+                var minutes = (date.getMinutes() < 10 ? '0' : '') + date.getMinutes(); 
+                var seconds = (date.getSeconds() < 10 ? '0' : '') + date.getSeconds(); 
+                time = hours + ":" +minutes + ":" +seconds ;
+                messages.push({
+                    content:content,
+                    sender:sender,
+                    time:time
+                });
+                let data = "<tr class='waiting'>"+
+                    "<td class='m-user'>"
+                     + sender  + "</td>" +
+                     "<td class='m-message'>"
+                     + content + "</td>" +
+                     "<td class='m-date'>"
+                     + time +
+                    "</td></tr>";
+                $("#messages").append(data);
+                    
+            });
+            // console.log(messages);
+        }
+
+        function sendMessage(){
+            let text = $("#text_input").val();
+            let data = "<tr class='waiting'>"+
+                    "<td class='m-user'>"
+                     + "<%=username%>" + "</td>" +
+                     "<td class='m-message'>"
+                     + text + "</td>" +
+                     "<td class='m-date'>"
+                     + "" +
+                    "</td></tr>";
+            // $("#messages").append(data);
+            $("#text_input").val("");
+            console.log("Test -- ");
+            $.ajax({
+                method: "POST",
+                url: "/chat",
+                data:{
+                    type: "message",
+                    message: text
+                },
+                success:res =>{
+                    updateChat();
+                },
+                error:()=>{
+                    console.log("Failed to send the message - "  +text);
+                }
+            });
+        }
+    </script>
+    <!-- temp -->
+</head>
+<body>
+    <div class="header">
+        <div class="logo"></div>
+        <div class="logout">Log out</div>
+        <div class="username"><%=username%></div>
+    </div>
+    <div class="chat">
+        <div id="board">
+            <table id="messages" width="100%">
+                <!-- <tr>
+                    <td class="m-user">User: </td>
+                    <td class="m-message">Message </td>
+                    <td class="m-date">date</td>
+                </tr> -->
+            </table>
+        </div>
+        <div id="users"> 
+
+        </div>
+        <div class="input">
+            <input id="text_input" type="text" name="input" placeholder="Your message here...">
+            <button id="send_btn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</body>
+</html>
